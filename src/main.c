@@ -2,8 +2,10 @@
 
 #include <stdbool.h>
 #include <SDL2/SDL.h>
-
-#include <GL/glew.h>
+#include "file.h"
+#include "gl.h"
+#include "quad.h"
+#include "shader.h"
 
 int main(int argc, char *argv[]) {
   
@@ -28,27 +30,48 @@ int main(int argc, char *argv[]) {
   );
   
   if (!window) {
-    fprintf(stderr, "Failed to create SDL window.");
+    fprintf(stderr, "Failed to create SDL window.\n");
     return -1;
   }
   
   SDL_GLContext gl_context = SDL_GL_CreateContext(window);
   
   if (!gl_context) {
-    fprintf(stderr, "Failed to create GL context");
+    fprintf(stderr, "Failed to create GL context\n");
     return -1;
   }
   
-  glewExperimental = true;
+  if (!gl_init()) {
+    return -1;
+  }
   
-  GLenum status = glewInit();
+  quad_init();
   
-  if (status != GLEW_OK) {
-    fprintf(stderr, "Failed to initialize GLEW: %s", glewGetErrorString(status));
+  char *vert_src = file_read_all("assets/shader.vert");
+  
+  if (!vert_src) {
+    fprintf(stderr, "Failed to load 'assets/shader.vert'\n");
+    return -1;
+  }
+  
+  char *frag_src = file_read_all("assets/shader.frag");
+  
+  if (!frag_src) {
+    fprintf(stderr, "Failed to load 'assets/shader.frag'\n");
+    return -1;
+  }
+  
+  GLuint shader;
+  
+  if (!shader_load(&shader, vert_src, frag_src)) {
+    fprintf(stderr, "Failed to load shader\n");
     return -1;
   }
   
   bool quit = false;
+  
+  quad_bind();
+  glUseProgram(shader);
   
   while (!quit) {
     SDL_Event event;
@@ -59,6 +82,8 @@ int main(int argc, char *argv[]) {
         break;
       }
     }
+    
+    quad_draw();
     
     SDL_GL_SwapWindow(window);
   }
