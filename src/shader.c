@@ -32,7 +32,7 @@ bool shader_load(GLuint *shader, const char *vert_src[], int num_vert_src, const
   
   if (!success) {
     glGetProgramInfoLog(*shader, MAX_INFO, NULL, info);
-    fprintf(stderr, "Failed to link shader:\n%s\n", info);
+    fprintf(stderr, "failed to link shader:\n%s", info);
     return false;
   }
   
@@ -72,7 +72,7 @@ static bool shader_compile(GLuint *shader, const char *src[], int num_src, GLuin
     }
     
     glGetShaderInfoLog(*shader, MAX_INFO, NULL, info);
-    fprintf(stderr, "Failed to compiler %s:\n%s\n", name, info);
+    fprintf(stderr, "failed to compile %s:\n%s", name, info);
     
     return false;
   }

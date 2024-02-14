@@ -51,11 +51,18 @@ bool shader_setup_source(shader_setup_t *shader_setup, shader_bit_t shader, cons
 
 bool shader_setup_compile(GLuint *shader, const shader_setup_t *shader_setup)
 {
-  return shader_load(
-    shader,
-    (const char **) shader_setup->vert_src, shader_setup->num_vert,
-    (const char **) shader_setup->frag_src, shader_setup->num_frag
-  );
+  if (
+    !shader_load(
+      shader,
+      (const char **) shader_setup->vert_src, shader_setup->num_vert,
+      (const char **) shader_setup->frag_src, shader_setup->num_frag
+    )
+  ) {
+    fprintf(stderr, "failed to compile shader setup: '%s'\n", shader_setup->name);
+    return false;
+  }
+  
+  return true;
 }
 
 void shader_setup_free(shader_setup_t *shader_setup)

@@ -5,6 +5,6 @@ out vec2 vs_uv;
 
 void main()
 {
-  vs_uv = uv;
+  vs_uv = uv * iResolution;
   gl_Position = vec4(pos, 0.0, 1.0);
 }
