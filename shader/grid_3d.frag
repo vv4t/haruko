@@ -2,7 +2,7 @@ float calc_light(vec2 frag_coord)
 {
   vec2 pos = frag_coord * 2.0 - 1.0;
   
-  float z_depth = abs(8.0 / pos.y);
+  float z_depth = abs(4.0 / pos.y);
   float x_depth = pos.x * z_depth;
   
   float light = 0.0;
@@ -11,22 +11,18 @@ float calc_light(vec2 frag_coord)
     float xd = x_depth;
     float zd = z_depth;
     
-    float rot = sin(iTime * 3.0) * 0.0;
+    float c = cos(xd);
+    float s = sin(zd + iTime * 10.0);
     
-    float xr = xd * cos(rot) - zd * sin(rot);
-    float zr = xd * sin(rot) + zd * cos(rot) + iTime * 10.0;
-    
-    float c = cos(xr);
-    float s = sin(zr);
-    
-    float alpha = 3.0 * (pow(c, 120.0) + pow(s, 120.0));
+    float d = abs(pos.y - 0.1);
+    float alpha = 8.0 * max(pow(c * c, 120.0), pow(s * s, 120.0)) * (d * d * d);
     
     light += alpha;
   }
   
-  float d = length(pos * vec2(1.0, 10.0));
-  float d2 = length(pos * vec2(1.0, 0.5));
-  light += 0.05 / pow(d, 2.0) + 0.01 / pow(d2, 2.0);
+  float dx = length(pos * vec2(1.0, 10.0));
+  float dy = length(pos * vec2(1.0, 0.8));
+  light += (5.0 / dx + 1.0 / dy) * 0.05;
   
   return light;
 }
@@ -34,19 +30,6 @@ float calc_light(vec2 frag_coord)
 
 void mainImage(out vec4 frag_color, in vec2 frag_coord)
 {
-  float light = 0.0;
-  
-  vec2 sample_pos[4] = vec2[4](
-    vec2(-0.5, 0.0),
-    vec2(+0.5, 0.0),
-    vec2(0.0, -0.5),
-    vec2(0.0, +0.5)
-  );
-  
-  for (int i = 0; i < 4; i++) {
-    light += calc_light(frag_coord + sample_pos[i] * 0.001) / 4.0;
-  }
-  
+  float light = calc_light(frag_coord);
   frag_color = vec4(vec3(1.0, 0.3, 1.0) * light, 1.0);
 }
-

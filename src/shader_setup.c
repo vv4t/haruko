@@ -53,7 +53,7 @@ bool shader_setup_compile(GLuint *shader, const shader_setup_t *shader_setup)
 {
   return shader_load(
     shader,
-    shader_setup->vert_src, shader_setup->num_vert,
-    shader_setup->frag_src, shader_setup->num_frag
+    (const char **) shader_setup->vert_src, shader_setup->num_vert,
+    (const char **) shader_setup->frag_src, shader_setup->num_frag
   );
 }
