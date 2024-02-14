@@ -59,7 +59,11 @@ int main(int argc, char *argv[])
     return -1;
   }
   
-  if (!shader_setup_source(&shader_setup, SHADER_FRAGMENT, "shader/test.frag")) {
+  if (!shader_setup_source(&shader_setup, SHADER_FRAGMENT, "builtin/input.glsl")) {
+    return -1;
+  }
+  
+  if (!shader_setup_source(&shader_setup, SHADER_FRAGMENT, "shader/grid_3d.frag")) {
     return -1;
   }
   
@@ -71,10 +75,14 @@ int main(int argc, char *argv[])
     return -1;
   }
   
+  GLuint iTime = glGetUniformLocation(shader, "iTime");
+  
   bool quit = false;
   
   quad_bind();
   glUseProgram(shader);
+  
+  float time = 0.0;
   
   while (!quit) {
     SDL_Event event;
@@ -86,9 +94,12 @@ int main(int argc, char *argv[])
       }
     }
     
+    glUniform1f(iTime, time);
     quad_draw();
     
     SDL_GL_SwapWindow(window);
+    
+    time += 0.015;
   }
   
   SDL_GL_DeleteContext(gl_context);
