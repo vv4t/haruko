@@ -57,3 +57,19 @@ bool shader_setup_compile(GLuint *shader, const shader_setup_t *shader_setup)
     (const char **) shader_setup->frag_src, shader_setup->num_frag
   );
 }
+
+void shader_setup_free(shader_setup_t *shader_setup)
+{
+  for (int i = 0; i < shader_setup->num_vert; i++) {
+    free(shader_setup->vert_src[i]);
+    shader_setup->vert_src[i] = NULL;
+  }
+  
+  for (int i = 0; i < shader_setup->num_frag; i++) {
+    free(shader_setup->frag_src[i]);
+    shader_setup->frag_src[i] = NULL;
+  }
+  
+  shader_setup->num_vert = 0;
+  shader_setup->num_frag = 0;
+}
