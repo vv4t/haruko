@@ -5,19 +5,19 @@
 
 #define MAX_INFO 512
 
-static bool shader_compile(GLuint *shader, const char *src, GLuint type);
+static bool shader_compile(GLuint *shader, const char *src[], int num_src, GLuint type);
 
-bool shader_load(GLuint *shader, const char *vert_src, const char *frag_src)
+bool shader_load(GLuint *shader, const char *vert_src[], int num_vert_src, const char *frag_src[], int num_frag_src)
 {
   *shader = glCreateProgram();
   
   GLuint vert_shader;
-  if (!shader_compile(&vert_shader, vert_src, GL_VERTEX_SHADER)) {
+  if (!shader_compile(&vert_shader, vert_src, num_vert_src, GL_VERTEX_SHADER)) {
     return false;
   }
   
   GLuint frag_shader;
-  if (!shader_compile(&frag_shader, frag_src, GL_FRAGMENT_SHADER)) {
+  if (!shader_compile(&frag_shader, frag_src, num_frag_src, GL_FRAGMENT_SHADER)) {
     return false;
   }
   
@@ -45,13 +45,13 @@ bool shader_load(GLuint *shader, const char *vert_src, const char *frag_src)
   return true;
 }
 
-static bool shader_compile(GLuint *shader, const char *src, GLuint type)
+static bool shader_compile(GLuint *shader, const char *src[], int num_src, GLuint type)
 {
   int success;
   static GLchar info[MAX_INFO];
   
   *shader = glCreateShader(type);
-  glShaderSource(*shader, 1, &src, NULL);
+  glShaderSource(*shader, num_src, src, NULL);
   
   glCompileShader(*shader);
   glGetShaderiv(*shader, GL_COMPILE_STATUS, &success);

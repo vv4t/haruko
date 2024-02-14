@@ -6,9 +6,10 @@
 #include "gl.h"
 #include "quad.h"
 #include "shader.h"
+#include "shader_setup.h"
 
-int main(int argc, char *argv[]) {
-  
+int main(int argc, char *argv[])
+{
   SDL_Init(SDL_INIT_VIDEO);
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
   SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
@@ -30,7 +31,7 @@ int main(int argc, char *argv[]) {
   );
   
   if (!window) {
-    fprintf(stderr, "Failed to create SDL window.\n");
+    fprintf(stderr, "failed to create SDL window.\n");
     return -1;
   }
   
@@ -47,24 +48,26 @@ int main(int argc, char *argv[]) {
   
   quad_init();
   
-  char *vert_src = file_read_all("assets/shader.vert");
-  
-  if (!vert_src) {
-    fprintf(stderr, "Failed to load 'assets/shader.vert'\n");
-    return -1;
-  }
-  
-  char *frag_src = file_read_all("assets/shader.frag");
-  
-  if (!frag_src) {
-    fprintf(stderr, "Failed to load 'assets/shader.frag'\n");
-    return -1;
-  }
-  
   GLuint shader;
   
-  if (!shader_load(&shader, vert_src, frag_src)) {
-    fprintf(stderr, "Failed to load shader\n");
+  shader_setup_t shader_setup;
+  shader_setup_init(&shader_setup, "shader");
+  shader_setup_add(&shader_setup, SHADER_BOTH, "#version 300 es\n");
+  shader_setup_add(&shader_setup, SHADER_BOTH, "precision mediump float;\n");
+  
+  if (!shader_setup_source(&shader_setup, SHADER_VERTEX, "builtin/shader.vert")) {
+    return -1;
+  }
+  
+  if (!shader_setup_source(&shader_setup, SHADER_FRAGMENT, "shader/test.frag")) {
+    return -1;
+  }
+  
+  if (!shader_setup_source(&shader_setup, SHADER_FRAGMENT, "builtin/shader.frag")) {
+    return -1;
+  }
+  
+  if (!shader_setup_compile(&shader, &shader_setup)) {
     return -1;
   }
   
