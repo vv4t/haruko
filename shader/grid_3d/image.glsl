@@ -1,6 +1,6 @@
 void mainImage(out vec4 frag_color, in vec2 frag_coord)
 {
-  vec2 pos = frag_coord / iResolution * 2.0 - 1.0;
+  vec2 pos = frag_coord / iResolution.xy * 2.0 - 1.0;
   
   float z_depth = abs(4.0 / pos.y);
   float x_depth = pos.x * z_depth;

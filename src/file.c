@@ -8,7 +8,7 @@ char *file_read_all(const char *path)
   FILE *f = fopen(path, "rb");
   
   if (!f) {
-    fprintf(stderr, "Failed to read '%s'", path);
+    fprintf(stderr, "failed to read '%s'\n", path);
     return NULL;
   }
   
