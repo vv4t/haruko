@@ -63,10 +63,11 @@ void haruko_poll();
 void haruko_quit();
 bool haruko_load_sdl(const char *title, int width, int height);
 bool haruko_load_image(GLuint *texture, const char *image_path);
+bool haruko_load_cubemap(GLuint *texture, const char *faces[]);
 void haruko_init_input();
 void haruko_init_empty_channel();
 
-void channel_texture(channel_t *channel, GLuint texture);
+void channel_init(channel_t *channel, GLuint type, GLuint texture);
 
 buffer_t buffer_default();
 buffer_t buffer_new();
@@ -89,28 +90,27 @@ int main(int argc, char *argv[])
   
   buffer_t image = buffer_default();
   
-  buffer_t buffer[] = {
-    buffer_new(),
-    buffer_new()
+  buffer_t buffer[] = {};
+  int num_buffer = sizeof(buffer) / sizeof(buffer_t);
+  
+  const char *faces[] = {
+    "shader/skybox/right.jpg",
+    "shader/skybox/left.jpg",
+    "shader/skybox/up.jpg",
+    "shader/skybox/down.jpg",
+    "shader/skybox/back.jpg",
+    "shader/skybox/front.jpg"
   };
   
-  GLuint texture;
-  if (!haruko_load_image(&texture, "shader/wave/boundaries.png")) {
+  GLuint cubemap;
+  
+  if (!haruko_load_cubemap(&cubemap, faces)) {
     return false;
   }
   
-  channel_texture(&buffer[0].channel[0], buffer[1].texture);
-  channel_texture(&buffer[0].channel[1], texture);
+  channel_init(&image.channel[0], GL_TEXTURE_CUBE_MAP, cubemap);
   
-  channel_texture(&buffer[1].channel[0], buffer[0].texture);
-  channel_texture(&buffer[1].channel[1], texture);
-  
-  channel_texture(&image.channel[0], buffer[0].texture);
-  channel_texture(&image.channel[1], texture);
-  
-  if (!buffer_shader_load(&image, "shader/wave/image.glsl")) return false;
-  if (!buffer_shader_load(&buffer[0], "shader/wave/A.glsl")) return false;
-  if (!buffer_shader_load(&buffer[1], "shader/wave/B.glsl")) return false;
+  if (!buffer_shader_load(&image, "shader/skybox/image.glsl")) return false;
   
   quad_bind();
   
@@ -137,8 +137,10 @@ int main(int argc, char *argv[])
     glBindBuffer(GL_UNIFORM_BUFFER, haruko.ubo_input);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(ub_input_t), &ub_input);
     
-    buffer_update(&buffer[0]);
-    buffer_update(&buffer[1]);
+    for (int i = 0; i < num_buffer; i++) {
+      buffer_update(&buffer[i]);
+    }
+    
     buffer_update(&image);
     
     time += 0.015;
@@ -151,9 +153,9 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-void channel_texture(channel_t *channel, GLuint texture)
+void channel_init(channel_t *channel, GLuint type, GLuint texture)
 {
-  channel->type = GL_TEXTURE_2D;
+  channel->type = type;
   channel->texture = texture;
 }
 
@@ -316,6 +318,39 @@ bool haruko_load_image(GLuint *texture, const char *path)
   glGenerateMipmap(GL_TEXTURE_2D);
   
   SDL_FreeSurface(bitmap);
+  
+  return true;
+}
+
+bool haruko_load_cubemap(GLuint *texture, const char *faces[])
+{
+  glGenTextures(1, texture);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, *texture);
+  
+  for (int i = 0; i < 6; i++) {
+    SDL_Surface *bitmap = IMG_Load(faces[i]);
+    
+    if (!bitmap) {
+      fprintf(stderr, "could not load %s", faces[i]);
+      return false;
+    }
+    
+    GLuint internal_format = bitmap_format(bitmap);
+
+    glTexImage2D(
+      GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internal_format,
+      bitmap->w, bitmap->h,
+      0, internal_format, GL_UNSIGNED_BYTE, bitmap->pixels
+    );
+    
+    SDL_FreeSurface(bitmap);
+  }
+  
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
   
   return true;
 }
