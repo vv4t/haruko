@@ -1,4 +1,4 @@
-#define wave_in iChannel1
+#define wave_in iChannel0
 
 void mainImage(out vec4 frag_color, in vec2 frag_coord)
 {
@@ -28,8 +28,6 @@ void mainImage(out vec4 frag_color, in vec2 frag_coord)
   float c = 0.4;
   
   float u_0 = u * 2.0 - u_t + c * d2u_dt2;
-  float l = length(frag_coord - iMouse.xy);
-  u_0 += iMouse.z * 0.1 / (l * l);
   
-  frag_color = vec4(u_0, u, 0.0, 1.0);
+  frag_color = vec4(u_0, u, 1.0, 1.0);
 }
