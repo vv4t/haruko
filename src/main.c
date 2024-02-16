@@ -11,8 +11,7 @@
 #include "file.h"
 #include "gl.h"
 #include "quad.h"
-#include "shader.h"
-#include "shader_setup.h"
+#include "buffer.h"
 
 typedef struct {
   float iMouse_x;
@@ -26,18 +25,6 @@ typedef struct {
   
   float iTime;
 } ub_input_t;
-
-typedef struct {
-  GLuint type;
-  GLuint texture;
-} channel_t;
-
-typedef struct {
-  GLuint fbo;
-  GLuint texture;
-  GLuint shader;
-  channel_t channel[4];
-} buffer_t;
 
 struct {
   SDL_Window *window;
@@ -54,6 +41,8 @@ struct {
   float mouse_down;
   float mouse_click;
   
+  float time;
+  
   GLuint ubo_input;
   
   channel_t empty_channel;
@@ -66,13 +55,7 @@ bool haruko_load_image(GLuint *texture, const char *image_path);
 bool haruko_load_cubemap(GLuint *texture, const char *faces[]);
 void haruko_init_input();
 void haruko_init_empty_channel();
-
-void channel_init(channel_t *channel, GLuint type, GLuint texture);
-
-buffer_t buffer_default();
-buffer_t buffer_new();
-bool buffer_shader_load(buffer_t *buffer, const char *shader_path);
-void buffer_update(buffer_t *buffer);
+void haruko_update_input();
 
 int main(int argc, char *argv[])
 {
@@ -88,7 +71,7 @@ int main(int argc, char *argv[])
   haruko_init_input();
   haruko_init_empty_channel();
   
-  buffer_t image = buffer_default();
+  buffer_t image = buffer_main(haruko.empty_channel);
   
   buffer_t buffer[] = {};
   int num_buffer = sizeof(buffer) / sizeof(buffer_t);
@@ -114,28 +97,9 @@ int main(int argc, char *argv[])
   
   quad_bind();
   
-  float time = 0.0;
-  
   while (!haruko.quit) {
     haruko_poll();
-    
-    ub_input_t ub_input = {
-      .iMouse_x = haruko.mouse_x,
-      .iMouse_y = haruko.mouse_y,
-      .iMouse_z = haruko.click_x * (haruko.mouse_down > 0.0 ? 1.0 : -1.0),
-      .iMouse_w = haruko.click_y * (haruko.mouse_click > 0.0 ? 1.0 : -1.0),
-      
-      .iResolution_x = HARUKO_WIDTH,
-      .iResolution_y = HARUKO_HEIGHT,
-      .iResolution_z = 1.0,
-      
-      .iTime = time
-    };
-    
-    haruko.mouse_click = 0.0;
-    
-    glBindBuffer(GL_UNIFORM_BUFFER, haruko.ubo_input);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(ub_input_t), &ub_input);
+    haruko_update_input();
     
     for (int i = 0; i < num_buffer; i++) {
       buffer_update(&buffer[i]);
@@ -143,7 +107,7 @@ int main(int argc, char *argv[])
     
     buffer_update(&image);
     
-    time += 0.015;
+    haruko.time += 0.015;
     
     SDL_GL_SwapWindow(haruko.window);
   }
@@ -153,121 +117,25 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-void channel_init(channel_t *channel, GLuint type, GLuint texture)
+void haruko_update_input()
 {
-  channel->type = type;
-  channel->texture = texture;
-}
-
-void buffer_update(buffer_t *buffer)
-{
-  glBindFramebuffer(GL_FRAMEBUFFER, buffer->fbo);
-  
-  glClear(GL_COLOR_BUFFER_BIT);
-  glUseProgram(buffer->shader);
-  
-  for (int i = 0; i < 4; i++) {
-    glActiveTexture(GL_TEXTURE0 + i);
-    glBindTexture(buffer->channel[i].type, buffer->channel[i].texture);
-  }
-  
-  quad_draw();
-  
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-buffer_t buffer_default()
-{
-  buffer_t buffer = {
-    .fbo = 0,
-    .texture = 0,
-    .channel = {
-      haruko.empty_channel,
-      haruko.empty_channel,
-      haruko.empty_channel,
-      haruko.empty_channel
-    }
+  ub_input_t ub_input = {
+    .iMouse_x = haruko.mouse_x,
+    .iMouse_y = haruko.mouse_y,
+    .iMouse_z = haruko.click_x * (haruko.mouse_down > 0.0 ? 1.0 : -1.0),
+    .iMouse_w = haruko.click_y * (haruko.mouse_click > 0.0 ? 1.0 : -1.0),
+    
+    .iResolution_x = HARUKO_WIDTH,
+    .iResolution_y = HARUKO_HEIGHT,
+    .iResolution_z = 1.0,
+    
+    .iTime = haruko.time
   };
   
-  return buffer;
-}
-
-buffer_t buffer_new()
-{
-  buffer_t buffer;
+  haruko.mouse_click = 0.0;
   
-  glGenTextures(1, &buffer.texture);
-  glBindTexture(GL_TEXTURE_2D, buffer.texture);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, HARUKO_WIDTH, HARUKO_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  
-  glGenFramebuffers(1, &buffer.fbo);
-  glBindFramebuffer(GL_FRAMEBUFFER, buffer.fbo);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, buffer.texture, 0);
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  
-  buffer.channel[0] = haruko.empty_channel;
-  buffer.channel[1] = haruko.empty_channel;
-  buffer.channel[2] = haruko.empty_channel;
-  buffer.channel[3] = haruko.empty_channel;
-  
-  return buffer;
-}
-
-bool buffer_shader_load(buffer_t *buffer, const char *shader_path)
-{
-  shader_setup_t shader_setup;
-  shader_setup_init(&shader_setup, "shader");
-  shader_setup_add(&shader_setup, SHADER_BOTH, "#version 300 es\n");
-  shader_setup_add(&shader_setup, SHADER_BOTH, "precision mediump float;\n");
-  
-  shader_setup_add(&shader_setup, SHADER_BOTH, "layout (std140) uniform ub_input {\n");
-  shader_setup_add(&shader_setup, SHADER_BOTH, "  vec4 iMouse;\n");
-  shader_setup_add(&shader_setup, SHADER_BOTH, "  vec3 iResolution;\n");
-  shader_setup_add(&shader_setup, SHADER_BOTH, "  float iTime;\n");
-  shader_setup_add(&shader_setup, SHADER_BOTH, "};\n");
-  
-  for (int i = 0; i < 4; i++) {
-    char channel_name[32];
-    
-    switch (buffer->channel[i].type) {
-    case GL_TEXTURE_2D:
-      snprintf(channel_name, 32, "uniform sampler2D iChannel%i;\n", i);
-      shader_setup_add(&shader_setup, SHADER_FRAGMENT, channel_name);
-      break;
-    case GL_TEXTURE_CUBE_MAP:
-      snprintf(channel_name, 32, "uniform samplerCube iChannel%i;\n", i);
-      shader_setup_add(&shader_setup, SHADER_FRAGMENT, channel_name);
-      break;
-    default:
-      break;
-    }
-  }
-  
-  if (!shader_setup_source(&shader_setup, SHADER_VERTEX, "builtin/shader.vert")) return false;
-  if (!shader_setup_source(&shader_setup, SHADER_FRAGMENT, shader_path)) return false;
-  if (!shader_setup_source(&shader_setup, SHADER_FRAGMENT, "builtin/shader.frag")) return false;
-  if (!shader_setup_compile(&buffer->shader, &shader_setup)) return false;
-  
-  shader_setup_free(&shader_setup);
-  
-  glUseProgram(buffer->shader);
-  
-  for (int i = 0; i < 4; i++) {
-    char channel_name[32];
-    snprintf(channel_name, 32, "iChannel%i", i);
-    
-    GLuint ul_channel = glGetUniformLocation(buffer->shader, channel_name);
-    glUniform1i(ul_channel, i);
-  }
-  
-  GLuint ubl_input = glGetUniformBlockIndex(buffer->shader, "ub_input");
-  glUniformBlockBinding(buffer->shader, ubl_input, 0);
-  
-  return true;
+  glBindBuffer(GL_UNIFORM_BUFFER, haruko.ubo_input);
+  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(ub_input_t), &ub_input);
 }
 
 void haruko_init_input()
