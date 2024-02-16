@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
   
   channel_init(&image.channel[0], GL_TEXTURE_CUBE_MAP, cubemap);
   
-  if (!buffer_shader_load(&image, "shader/skybox/image.glsl")) return false;
+  if (!buffer_shader_load(&image, "shader/ray_march_test/image.glsl")) return false;
   
   quad_bind();
   
