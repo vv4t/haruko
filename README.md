@@ -3,9 +3,11 @@
 A toy shadertoy.
 
 ## Installation
+  ```
   > git clone https://github.com/vv4t/haruko.git
   > cd haruko
   > make
+  ```
 
 ## Usage
   Setup up a `.cfg` describing shader configuration. See examples in [shader](https://github.com/vv4t/haruko/tree/main/shader). Then run it with the command 
