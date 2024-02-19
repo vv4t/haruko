@@ -3,6 +3,8 @@
 A toy shadertoy.
 
 ## Installation
+  > git clone https://github.com/vv4t/haruko.git
+  > cd haruko
   > make
 
 ## Usage
