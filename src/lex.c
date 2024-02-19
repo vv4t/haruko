@@ -172,7 +172,11 @@ token_t *scan_token(lex_file_t *lex)
     if ((token = token_match_text(lex))) return token;
     if ((token = token_match_symbol(lex))) return token;
     
-    printf("warning: skipping unknown character: '%c' (%i)\n", *lex->c, *lex->c);
+    if (isprint(*lex->c)) {
+      printf("warning: skipping unknown character: '%c' (%i)\n", *lex->c, *lex->c);
+    } else {
+      printf("warning: skipping unknown character: (%i)\n", *lex->c, *lex->c);
+    }
     lex->c++;
   }
   

@@ -92,9 +92,32 @@ bool buffer_shader_load(buffer_t *buffer, const char *shader_path)
     }
   }
   
-  if (!shader_setup_source(&shader_setup, SHADER_VERTEX, "builtin/shader.vert")) return false;
+  const char *builtin_vert = "\
+layout(location = 0) in vec2 pos;\n\
+layout(location = 1) in vec2 uv;\n\
+\n\
+out vec2 vs_uv;\n\
+\n\
+void main()\n\
+{\n\
+  vs_uv = uv * iResolution.xy;\n\
+  gl_Position = vec4(pos, 0.0, 1.0);\n\
+}";
+  
+  const char *builtin_frag = "\
+out vec4 frag_color;\n\
+in vec2 vs_uv;\n\
+\n\
+void main()\n\
+{\n\
+  mainImage(frag_color, vs_uv);\n\
+}";
+  
+  shader_setup_add(&shader_setup, SHADER_VERTEX, builtin_vert);
+  
   if (!shader_setup_source(&shader_setup, SHADER_FRAGMENT, shader_path)) return false;
-  if (!shader_setup_source(&shader_setup, SHADER_FRAGMENT, "builtin/shader.frag")) return false;
+  shader_setup_add(&shader_setup, SHADER_FRAGMENT, builtin_frag);
+  
   if (!shader_setup_compile(&buffer->shader, &shader_setup)) return false;
   
   shader_setup_free(&shader_setup);
