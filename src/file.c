@@ -5,20 +5,20 @@
 
 char *file_read_all(const char *path)
 {
-  FILE *f = fopen(path, "rb");
+  FILE *fp = fopen(path, "rb");
   
-  if (!f) {
-    fprintf(stderr, "failed to read '%s'\n", path);
+  if (!fp) {
+    perror(path);
     return NULL;
   }
   
-  fseek(f, 0, SEEK_END);
-  long fsize = ftell(f);
-  fseek(f, 0, SEEK_SET);
+  fseek(fp, 0, SEEK_END);
+  long fsize = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
   
   char *buffer = malloc(fsize + 1);
-  fread(buffer, fsize, 1, f);
-  fclose(f);
+  fread(buffer, fsize, 1, fp);
+  fclose(fp);
   
   buffer[fsize] = 0;
   

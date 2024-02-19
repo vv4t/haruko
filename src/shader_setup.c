@@ -58,7 +58,7 @@ bool shader_setup_compile(GLuint *shader, const shader_setup_t *shader_setup)
       (const char **) shader_setup->frag_src, shader_setup->num_frag
     )
   ) {
-    fprintf(stderr, "failed to compile shader setup: '%s'\n", shader_setup->name);
+    fprintf(stderr, "Failed to compile shader setup: '%s'\n", shader_setup->name);
     return false;
   }
   

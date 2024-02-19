@@ -20,7 +20,6 @@ void mainImage(out vec4 frag_color, in vec2 frag_coord)
   
   vec3 a = vec3(0.0, 0.0, 1.0);
   vec3 b = vec3(0.0, 1.0, 1.0);
-  vec3 c = vec3(0.0, 1.0, 1.0);
   
-  frag_color = vec4(mix(a * x, b * y, 0.5) + mix(x, y, 0.5) * c, 1.0);
+  frag_color = vec4(mix(a * x, b * y, 0.5), 1.0);
 }
