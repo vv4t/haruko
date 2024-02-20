@@ -1,23 +1,6 @@
 #define MIN_DISTANCE 0.01
 #define MAX_DISTANCE 1000.0
-#define NUM_STEPS 128
-
-vec3 rot_xz(vec3 v, float c, float s);
-vec3 get_ray(vec2 m, vec2 uv, float ar);
-float map(vec3 p);
-vec3 ray_march(vec3 ro, vec3 rd);
-
-void mainImage(out vec4 frag_color, in vec2 frag_coord)
-{
-  vec2 uv = frag_coord / iResolution.xy * 2.0 - 1.0;
-  vec2 m = (iMouse.xy / iResolution.xy * 2.0 - 1.0) * 4.0;
-  float ar = iResolution.x / iResolution.y;
-  
-  vec3 ray = normalize(get_ray(m, uv, ar));
-  vec3 diffuse = ray_march(vec3(0.0), ray);
-  
-  frag_color = vec4(diffuse, 1.0);
-}
+#define NUM_STEPS 64
 
 float smin(float a, float b) {
   float k = 0.2;
@@ -25,50 +8,79 @@ float smin(float a, float b) {
   return mix(b, a, h) - k * h * (1.0 - h);
 }
 
-float luminance(vec3 col) {
-  return (0.2126*col.r + 0.7152*col.g + 0.0722*col.b);
+float sphere(vec3 p, vec3 o, float r)
+{
+  return length(p - o) - r;
+}
+
+float cube(vec3 p, vec3 o, vec3 s)
+{
+  vec3 d = abs(p - o) - s;
+  return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
+}
+
+float plane(vec3 p, vec3 n, float d)
+{
+  return dot(p, n) - d;
 }
 
 float map(vec3 p)
 {
-  // float s1 = length(p - vec3(0.0, 0.0, 1.5)) - 1.0;
-  float p1 = dot(p, vec3(0.0, 1.0, 0.0)) - (-0.3);
+  float s1 = sphere(p, vec3(0.0, cos(iTime), 1.5), 0.5);
+  float c1 = cube(p, vec3(0.0, sin(iTime), 1.5), vec3(0.5, 0.5, 0.5));
+  float p1 = plane(p, vec3(0.0, 1.0, 0.0), -0.3);
   
-  float h = luminance(texture(iChannel1, p.xz).rgb) * 0.05;
-  
-  return p1 - h;
+  return smin(smin(c1, s1), p1);
 }
 
-vec3 map_normal(vec3 p, float d)
+vec3 map_normal(vec3 p)
 {
   float dp = 0.01;
+  float d = map(p);
   float dx = map(p + vec3(dp, 0.0, 0.0));
   float dy = map(p + vec3(0.0, dp, 0.0));
   float dz = map(p + vec3(0.0, 0.0, dp));
   return normalize((vec3(dx, dy, dz) - d) / dp);
 }
 
-vec2 map_uv(vec3 p, vec3 n)
+float shadow(vec3 pt, vec3 rd)
 {
-  vec3 v = abs(n);
+  vec3 p = pt;
+  float td = MIN_DISTANCE * 3.0;
+  float kd = 1.0;
   
-  if (v.x > v.y) {
-    if (v.z > v.x) {
-      return vec2(p.x, p.y);
-    } else {
-      return vec2(p.z, p.y);
-    }
-  } else {
-    if (v.z > v.y) {
-      return vec2(p.x, p.y);
-    } else {
-      return vec2(p.x, p.z);
-    }
+  for (int i = 0; i < NUM_STEPS && kd > 0.01; i++) {
+    p = pt + rd * td;
+    
+    float d = map(p);
+    
+    if (d < MIN_DISTANCE) kd = 0.0;
+    else kd = min(kd, 16.0 * d / td);
+    
+    if (td > MAX_DISTANCE) break;
+    
+    td += d;
   }
+  
+  return kd;
 }
 
-float rand(vec2 co){
-  return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+vec3 illuminate(vec3 p, vec3 ro)
+{
+  vec3 lp = vec3(1.0, 0.5, 3.0);
+  vec3 ld = lp - p;
+  
+  vec3 n = map_normal(p);
+  
+  vec3 I = normalize(p - ro);
+  vec3 R = reflect(I, n);
+  
+  float alpha = clamp(dot(n, ld), 0.0, 1.0);
+  float attenuation = 1.0 / dot(ld, ld);
+  float light = alpha * attenuation * shadow(p, normalize(ld));
+  
+  // return vec3(1.0) * light;
+  return vec3(1.0) * light + texture(iChannel0, R).rgb * 0.1;
 }
 
 vec3 ray_march(vec3 ro, vec3 rd)
@@ -81,26 +93,13 @@ vec3 ray_march(vec3 ro, vec3 rd)
     
     float d = map(p);
     
-    if (d < MIN_DISTANCE) {
-      vec3 n = map_normal(p, d);
-      vec2 uv = map_uv(p, n);
-      
-      vec3 I = normalize(p);
-      vec3 R = reflect(I, n);
-      
-      vec3 ld = p - vec3(2.0, 2.0, 0.0);
-      
-      return vec3(dot(n, normalize(-ld))) + texture(iChannel0, R).rgb * 0.2;
-    }
-    
-    if (td > MAX_DISTANCE) {
-      break;
-    }
+    if (d < MIN_DISTANCE) return illuminate(p, ro);
+    if (td > MAX_DISTANCE) break;
     
     td += d;
   }
   
-  return texture(iChannel0, rd).rgb;
+  return texture(iChannel0, reflect(normalize(p - ro), map_normal(p))).rgb * 0.1;
 }
 
 vec3 get_ray(vec2 m, vec2 uv, float ar)
@@ -125,3 +124,16 @@ vec3 get_ray(vec2 m, vec2 uv, float ar)
   
   return TBN * vec3(uv * vec2(ar, 1.0), 1.0);
 }
+
+void mainImage(out vec4 frag_color, in vec2 frag_coord)
+{
+  vec2 uv = frag_coord / iResolution.xy * 2.0 - 1.0;
+  vec2 m = (iMouse.xy / iResolution.xy * 2.0 - 1.0) * 4.0;
+  float ar = iResolution.x / iResolution.y;
+  
+  vec3 ray = normalize(get_ray(m, uv, ar));
+  vec3 diffuse = ray_march(vec3(0.5, 0.0, 0.5), ray);
+  
+  frag_color = vec4(diffuse, 1.0);
+}
+
