@@ -52,13 +52,13 @@ vec3 raymarch(vec3 ro, vec3 rd)
     
     float d = map(p);
     
-    if (d < MIN_DISTANCE) return illuminate(p, ro);
+    if (d < MIN_DISTANCE) return illuminate(p, ro) + texture(iChannel1, rd).rgb;
     if (td > MAX_DISTANCE) break;
     
     td += d;
   }
   
-  return vec3(0.0);
+  return texture(iChannel1, rd).rgb;
 }
 
 mat3 look_at(vec3 at, vec3 up)
@@ -101,15 +101,23 @@ void mainImage(out vec4 frag_color, in vec2 frag_coord)
   
   // mat3 view = look_at(m);
   
+  float cx = cos(-m.x);
+  float sx = sin(-m.x);
+  
+  float cy = cos(-m.y);
+  float sy = sin(-m.y);
+  
   mat3 rot = mat3(
-    cos(m.x), 0.0, sin(m.x),
+    cx, 0.0, sx,
     0.0, 1.0, 0.0,
-    -sin(m.x), 0.0, cos(m.x)
+    -sx, 0.0, cx
   );
   
-  vec3 from = rot * vec3(0.0, sin(m.y), cos(m.y)) * 4.0;
+  vec3 up = rot * vec3(0.0, -cy, sy);
+  
+  vec3 from = rot * vec3(0.0, sy, cy) * 4.0;
   vec3 at = vec3(0.0, 0.0, 0.0);
-  mat3 view = look_at(at - from, vec3(0.0, 1.0, 0.0));
+  mat3 view = look_at(at - from, up);
   
   vec3 ray = normalize(view * vec3(uv * vec2(ar, 1.0), 1.0));
   vec3 diffuse = raymarch(from, ray);
