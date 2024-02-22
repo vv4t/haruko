@@ -11,7 +11,9 @@ void mainImage(out vec4 frag_color, in vec2 frag_coord)
   vec3 p = vec3(fract(uv * depth), dot(floor(uv * depth), vec2(1.0, depth)) / pow(depth, 2.0));
   
   vec3 light = vec3(0.0);
-  light += cos(p.x * 8.0 + iTime * 4.0) * 0.01;
+  light += pow(cos(p.x * 6.0 + iTime * 4.0), 4.0) * 0.01;
+  light += pow(sin(p.y * 6.0 + iTime * 4.0), 4.0) * 0.01;
+  light += pow(sin(p.z * 6.0 + iTime * 4.0), 4.0) * 0.01;
   
   frag_color = vec4(light, 1.0);
 }

@@ -10,15 +10,14 @@ float cube(vec3 p, vec3 o, vec3 s)
 
 float map(vec3 p)
 {
-  vec3 q = vec3(cos(iTime), 0.0, 1.5) * 1.0;
+  vec3 q = vec3(-1.0, -1.0, -1.0) * 1.0;
   float c1 = cube(p, q, vec3(1.0));
-  
   return c1;
 }
 
 vec3 illuminate(vec3 p, vec3 ro)
 {
-  vec3 q = vec3(cos(iTime), 0.0, 1.5) * 1.0;
+  vec3 q = vec3(-1.0, -1.0, -1.0) * 1.0;
   vec3 a = (p - q) * 0.5;
   vec3 rd = normalize(p - ro) * 0.01;
   
@@ -37,13 +36,13 @@ vec3 illuminate(vec3 p, vec3 ro)
     
     light += texture(iChannel0, uv).rgb;
     
-    if (max(a.x, max(a.y, a.z)) > 1.0 || min(a.x, min(a.y, a.z)) < 0.0) break;
+    if (max(a.x, max(a.y, a.z)) > 1.0 + MIN_DISTANCE || min(a.x, min(a.y, a.z)) < -MIN_DISTANCE) break;
   }
   
   return light;
 }
 
-vec3 ray_march(vec3 ro, vec3 rd)
+vec3 raymarch(vec3 ro, vec3 rd)
 {
   vec3 p = ro;
   float td = 0.0;
@@ -62,7 +61,16 @@ vec3 ray_march(vec3 ro, vec3 rd)
   return vec3(0.0);
 }
 
-vec3 get_ray(vec2 m, vec2 uv, float ar)
+mat3 look_at(vec3 at, vec3 up)
+{
+  vec3 z = normalize(at);
+  vec3 x = normalize(cross(up, z));
+  vec3 y = normalize(cross(z, x));
+  
+  return mat3(x, y, z);
+}
+
+mat3 free_look(vec2 m)
 {
   float cx = cos(-m.x);
   float sx = sin(-m.x);
@@ -82,7 +90,7 @@ vec3 get_ray(vec2 m, vec2 uv, float ar)
   
   mat3 TBN = rot * mat3(side, up, forward);
   
-  return TBN * vec3(uv * vec2(ar, 1.0), 1.0);
+  return TBN;
 }
 
 void mainImage(out vec4 frag_color, in vec2 frag_coord)
@@ -91,8 +99,20 @@ void mainImage(out vec4 frag_color, in vec2 frag_coord)
   vec2 m = (iMouse.xy / iResolution.xy * 2.0 - 1.0) * 4.0;
   float ar = iResolution.x / iResolution.y;
   
-  vec3 ray = normalize(get_ray(m, uv, ar));
-  vec3 diffuse = ray_march(vec3(0.0, 0.5, 0.0), ray);
+  // mat3 view = look_at(m);
+  
+  mat3 rot = mat3(
+    cos(m.x), 0.0, sin(m.x),
+    0.0, 1.0, 0.0,
+    -sin(m.x), 0.0, cos(m.x)
+  );
+  
+  vec3 from = rot * vec3(0.0, sin(m.y), cos(m.y)) * 4.0;
+  vec3 at = vec3(0.0, 0.0, 0.0);
+  mat3 view = look_at(at - from, vec3(0.0, 1.0, 0.0));
+  
+  vec3 ray = normalize(view * vec3(uv * vec2(ar, 1.0), 1.0));
+  vec3 diffuse = raymarch(from, ray);
   
   frag_color = vec4(diffuse, 1.0);
 }
