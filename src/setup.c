@@ -53,21 +53,18 @@ bool setup_load(const char *path)
 
 bool setup_run()
 {
-  setup_ast(setup.ast);
+  return setup_ast(setup.ast);
 }
 
 bool setup_ast(ast_t *ast)
 {
-  buffer_t *image = haruko_get_image();
-  
-  if (!setup_var_insert("image", GL_TEXTURE_2D, image->texture, image)) {
-    return false;
-  }
-  
   assert(ast->type_ast == AST_STMT);
   
-  setup_buffer_init(ast);
-  setup_buffer_setup(ast);
+  buffer_t *image = haruko_get_image();
+  
+  if (!setup_var_insert("image", GL_TEXTURE_2D, image->texture, image)) return false;
+  if (!setup_buffer_init(ast)) return false;
+  if (!setup_buffer_setup(ast)) return false;
   
   return true;
 }
@@ -145,11 +142,12 @@ bool setup_load_image(ast_t *ast)
   
   GLuint texture;
   if (!haruko_load_image(&texture, path)) {
-    setup_error(ast, "failed to load image '%s'.", path);
+    setup_error(ast, "%s: failed to load image", path);
     return false;
   }
   
   if (!setup_var_insert(ast->load_image.alias->text, GL_TEXTURE_2D, texture, NULL)) {
+    setup_error(ast, "buffer with name '%s' already exists.", ast->load_image.alias->text);
     return false;
   }
   
@@ -183,12 +181,14 @@ bool setup_load_cubemap(ast_t *ast)
   
   GLuint texture;
   if (!haruko_load_cubemap(&texture, faces)) {
+    setup_error(ast, "failed to load cubemap '%s'.", ast->load_cubemap.path->text);
     return false;
   }
   
   const char *name = ast->load_image.alias->text;
   
   if (!setup_var_insert(name, GL_TEXTURE_CUBE_MAP, texture, NULL)) {
+    setup_error(ast, "buffer with name '%s' already exists.", ast->load_cubemap.alias->text);
     return false;
   }
   

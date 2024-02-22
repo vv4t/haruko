@@ -208,7 +208,7 @@ bool haruko_load_cubemap(GLuint *texture, const char *faces[])
     SDL_Surface *bitmap = IMG_Load(faces[i]);
     
     if (!bitmap) {
-      fprintf(stderr, "Failed to load image '%s'.\n", faces[i]);
+      fprintf(stderr, "%s: failed to load image\n", faces[i]);
       return false;
     }
     
@@ -299,14 +299,14 @@ bool haruko_load_sdl(const char *title, int width, int height)
   );
   
   if (!haruko.window) {
-    fprintf(stderr, "Failed to create SDL window.\n");
+    fprintf(stderr, "failed to create SDL window.\n");
     return true;
   }
   
   haruko.gl_context = SDL_GL_CreateContext(haruko.window);
   
   if (!haruko.gl_context) {
-    fprintf(stderr, "Failed to create GL context\n");
+    fprintf(stderr, "failed to create GL context\n");
     return false;
   }
   

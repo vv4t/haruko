@@ -131,8 +131,11 @@ void mainImage(out vec4 frag_color, in vec2 frag_coord)
   vec2 m = (iMouse.xy / iResolution.xy * 2.0 - 1.0) * 4.0;
   float ar = iResolution.x / iResolution.y;
   
+  vec2 p = abs(iMouse.zw) / iResolution.xy * 2.0 - 1.0;
+  vec3 pos = vec3(p.x, 0.0, p.y) * 4.0;
+  
   vec3 ray = normalize(get_ray(m, uv, ar));
-  vec3 diffuse = ray_march(vec3(0.5, 0.0, 0.5), ray);
+  vec3 diffuse = ray_march(pos, ray);
   
   frag_color = vec4(diffuse, 1.0);
 }

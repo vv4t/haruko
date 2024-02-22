@@ -5,12 +5,18 @@
 
 int main(int argc, char *argv[])
 {
-  if (argc != 2) {
-    fprintf(stderr, "usage: %s [cfg]\n", argv[0]);
+  const char *name = NULL;
+  
+  if (argc == 1) {
+    name = "GLCL";
+  } else if (argc == 2) {
+    name = argv[1];
+  } else {
+    fprintf(stderr, "usage: %s [GLCL]\n", argv[0]);
     return 1;
   }
   
-  if (!setup_load(argv[1])) {
+  if (!setup_load(name)) {
     return 1;
   }
   

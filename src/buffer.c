@@ -1,8 +1,9 @@
 #include "buffer.h"
 
 #include "quad.h"
-#include "shader.h"
 #include "shader_setup.h"
+#include <string.h>
+#include <stdlib.h>
 
 buffer_t buffer_main(channel_t empty)
 {
@@ -64,8 +65,10 @@ void buffer_update(buffer_t *buffer)
 
 bool buffer_shader_load(buffer_t *buffer, const char *shader_path)
 {
+  char *name = strdup(shader_path);
+  
   shader_setup_t shader_setup;
-  shader_setup_init(&shader_setup, "shader");
+  shader_setup_init(&shader_setup, name);
   shader_setup_add(&shader_setup, SHADER_BOTH, "#version 300 es\n");
   shader_setup_add(&shader_setup, SHADER_BOTH, "precision mediump float;\n");
   
@@ -134,6 +137,8 @@ void main()\n\
   
   GLuint ubl_input = glGetUniformBlockIndex(buffer->shader, "ub_input");
   glUniformBlockBinding(buffer->shader, ubl_input, 0);
+  
+  free(name);
   
   return true;
 }
